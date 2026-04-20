@@ -28,4 +28,9 @@ foreach ($directories as $directory) {
     }
 }
 
-$app->handleRequest(Request::capture());
+try {
+    $app->handleRequest(Request::capture());
+} catch (\Throwable $e) {
+    error_log((string) $e);
+    throw $e;
+}
