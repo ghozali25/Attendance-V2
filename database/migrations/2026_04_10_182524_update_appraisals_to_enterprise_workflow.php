@@ -30,8 +30,16 @@ return new class extends Migration
             $table->boolean('employee_acknowledgement')->default(false)->after('notes');
         });
 
-        \Illuminate\Support\Facades\DB::statement("ALTER TABLE appraisals MODIFY evaluator_id CHAR(26) NULL");
-        \Illuminate\Support\Facades\DB::statement("ALTER TABLE appraisals ADD COLUMN status ENUM('draft', 'self_assessment', 'manager_review', '1on1_scheduled', 'completed') DEFAULT 'draft' AFTER period_year");
+        $driver = \Illuminate\Support\Facades\DB::getDriverName();
+        if ($driver === 'pgsql') {
+            \Illuminate\Support\Facades\DB::statement('ALTER TABLE appraisals ALTER COLUMN evaluator_id DROP NOT NULL');
+        } else {
+            \Illuminate\Support\Facades\DB::statement('ALTER TABLE appraisals MODIFY evaluator_id CHAR(26) NULL');
+        }
+
+        Schema::table('appraisals', function (Blueprint $table) {
+            $table->enum('status', ['draft', 'self_assessment', 'manager_review', '1on1_scheduled', 'completed'])->default('draft');
+        });
 
         // 3. Create Evaluation Mapping Table
         Schema::create('appraisal_evaluations', function (Blueprint $table) {

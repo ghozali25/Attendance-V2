@@ -20,6 +20,7 @@ return new class extends Migration
                 'group' => 'admin',
                 'email_verified_at' => now(),
                 'phone' => '081234567890',
+                'gender' => 'male',
                 'address' => 'Demo Address, Jakarta',
                 'city' => 'Jakarta',
                 'created_at' => now(),

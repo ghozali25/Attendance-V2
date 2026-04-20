@@ -17,8 +17,13 @@ return new class extends Migration
             $table->date('expiration_date')->nullable()->after('purchase_cost');
         });
 
-        // Safely alter ENUM using Raw SQL to avoid Doctrine/DBAL issues
-        \Illuminate\Support\Facades\DB::statement("ALTER TABLE company_assets MODIFY status ENUM('available', 'assigned', 'maintenance', 'lost', 'retired', 'sold', 'auctioned', 'disposed') DEFAULT 'available'");
+        $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
+        if ($driver === 'pgsql') {
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE company_assets DROP CONSTRAINT IF EXISTS company_assets_status_check");
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE company_assets ADD CONSTRAINT company_assets_status_check CHECK (status IN ('available', 'assigned', 'maintenance', 'lost', 'retired', 'sold', 'auctioned', 'disposed'))");
+        } else {
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE company_assets MODIFY status ENUM('available', 'assigned', 'maintenance', 'lost', 'retired', 'sold', 'auctioned', 'disposed') DEFAULT 'available'");
+        }
     }
 
     /**
@@ -30,6 +35,12 @@ return new class extends Migration
             $table->dropColumn(['purchase_date', 'purchase_cost', 'expiration_date']);
         });
 
-        \Illuminate\Support\Facades\DB::statement("ALTER TABLE company_assets MODIFY status ENUM('available', 'assigned', 'maintenance', 'lost', 'retired') DEFAULT 'available'");
+        $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
+        if ($driver === 'pgsql') {
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE company_assets DROP CONSTRAINT IF EXISTS company_assets_status_check");
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE company_assets ADD CONSTRAINT company_assets_status_check CHECK (status IN ('available', 'assigned', 'maintenance', 'lost', 'retired'))");
+        } else {
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE company_assets MODIFY status ENUM('available', 'assigned', 'maintenance', 'lost', 'retired') DEFAULT 'available'");
+        }
     }
 };
