@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Notifications;
+
+use App\Models\Overtime;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
+
+class OvertimeRequested extends Notification
+{
+    public $overtime;
+
+    public function __construct(Overtime $overtime)
+    {
+        $this->overtime = $overtime;
+    }
+
+    public function via(object $notifiable): array
+    {
+        return ['database'];
+    }
+
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'type' => 'overtime_request',
+            'title' => 'New Overtime Request',
+            'user_id' => $this->overtime->user_id,
+            'user_name' => $this->overtime->user->name,
+            'date' => $this->overtime->date->format('Y-m-d'),
+            'duration' => $this->overtime->duration_text,
+            'message' => "Overtime request from {$this->overtime->user->name} ({$this->overtime->duration_text})",
+            'url' => route('admin.overtime'),
+        ];
+    }
+}

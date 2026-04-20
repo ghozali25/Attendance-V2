@@ -1,0 +1,123 @@
+<div>
+    <div class="mx-auto max-w-7xl px-2 sm:px-0 lg:px-0">
+        <!-- Header -->
+        <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <h2 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+                    {{ __('Education Levels') }}
+                </h2>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    {{ __('Manage education levels (SMA, D3, S1, etc).') }}
+                </p>
+            </div>
+            <x-button wire:click="showCreating" class="!bg-primary-600 hover:!bg-primary-700">
+                <x-heroicon-m-plus class="mr-2 h-4 w-4" />
+                {{ __('Add Education') }}
+            </x-button>
+        </div>
+
+        <!-- Content -->
+        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <!-- Desktop Table -->
+            <div class="hidden sm:block overflow-x-auto">
+                <table class="w-full whitespace-nowrap text-left text-sm">
+                    <thead class="bg-gray-50 text-gray-500 dark:bg-gray-700/50 dark:text-gray-400">
+                        <tr>
+                            <th scope="col" class="px-6 py-4 font-medium">{{ __('Level Name') }}</th>
+                            <th scope="col" class="px-6 py-4 text-right font-medium">{{ __('Actions') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                        @forelse ($educations as $education)
+                            <tr class="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                                    {{ $education->name }}
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex justify-end gap-2">
+                                        <button wire:click="edit({{ $education->id }})" class="text-gray-400 hover:text-blue-600 transition-colors" title="{{ __('Edit') }}">
+                                            <x-heroicon-m-pencil-square class="h-5 w-5" />
+                                        </button>
+                                        <button wire:click="confirmDeletion({{ $education->id }}, '{{ $education->name }}')" class="text-gray-400 hover:text-red-600 transition-colors" title="{{ __('Delete') }}">
+                                            <x-heroicon-m-trash class="h-5 w-5" />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="2" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                    <div class="flex flex-col items-center justify-center">
+                                        <x-heroicon-o-academic-cap class="h-12 w-12 text-gray-300 dark:text-gray-600 mb-3" />
+                                        <p class="font-medium">{{ __('No education levels found') }}</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mobile List -->
+            <div class="grid grid-cols-1 sm:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                 @foreach ($educations as $education)
+                    <div class="p-4 flex justify-between items-center group">
+                         <span class="font-medium text-gray-900 dark:text-white">{{ $education->name }}</span>
+                         <div class="flex items-center gap-3">
+                             <button wire:click="edit({{ $education->id }})" class="text-blue-600 dark:text-blue-400">
+                                 <x-heroicon-m-pencil-square class="h-5 w-5" />
+                             </button>
+                             <button wire:click="confirmDeletion({{ $education->id }}, '{{ $education->name }}')" class="text-red-600 dark:text-red-400">
+                                 <x-heroicon-m-trash class="h-5 w-5" />
+                             </button>
+                         </div>
+                     </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+    
+     <!-- Modals -->
+    <x-confirmation-modal wire:model="confirmingDeletion">
+        <x-slot name="title">{{ __('Delete Education') }}</x-slot>
+        <x-slot name="content">{{ __('Are you sure you want to delete') }} <b>{{ $deleteName }}</b>?</x-slot>
+        <x-slot name="footer">
+            <x-secondary-button wire:click="$toggle('confirmingDeletion')" wire:loading.attr="disabled">{{ __('Cancel') }}</x-secondary-button>
+            <x-danger-button class="ml-2" wire:click="delete" wire:loading.attr="disabled">{{ __('Confirm Delete') }}</x-danger-button>
+        </x-slot>
+    </x-confirmation-modal>
+
+    <x-dialog-modal wire:model="creating">
+        <x-slot name="title">{{ __('New Education') }}</x-slot>
+        <x-slot name="content">
+            <form wire:submit="create">
+                 <div>
+                    <x-label for="create_name" value="{{ __('Education Name') }}" />
+                    <x-input id="create_name" class="mt-1 block w-full" type="text" wire:model="name" />
+                    <x-input-error for="name" class="mt-2" />
+                 </div>
+            </form>
+        </x-slot>
+        <x-slot name="footer">
+            <x-secondary-button wire:click="$toggle('creating')" wire:loading.attr="disabled">{{ __('Cancel') }}</x-secondary-button>
+            <x-button class="ml-2" wire:click="create" wire:loading.attr="disabled">{{ __('Add Education') }}</x-button>
+        </x-slot>
+    </x-dialog-modal>
+    
+    <x-dialog-modal wire:model="editing">
+        <x-slot name="title">{{ __('Edit Education') }}</x-slot>
+        <x-slot name="content">
+            <form wire:submit.prevent="update">
+                 <div>
+                    <x-label for="edit_name" value="{{ __('Education Name') }}" />
+                    <x-input id="edit_name" class="mt-1 block w-full" type="text" wire:model="name" />
+                    <x-input-error for="name" class="mt-2" />
+                 </div>
+            </form>
+        </x-slot>
+        <x-slot name="footer">
+            <x-secondary-button wire:click="$toggle('editing')" wire:loading.attr="disabled">{{ __('Cancel') }}</x-secondary-button>
+            <x-button class="ml-2" wire:click="update" wire:loading.attr="disabled">{{ __('Save Changes') }}</x-button>
+        </x-slot>
+    </x-dialog-modal>
+</div>
