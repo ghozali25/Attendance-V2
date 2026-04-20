@@ -1,8 +1,5 @@
 <div align="center">
 
-powershell -c "irm bun.sh/install.ps1 | iex"
-
-
 <img src="./public/hero-banner.png" alt="Ali Hero" width="800">
 
 # **Ali** — Enterprise Workforce Management
@@ -97,8 +94,8 @@ Deploying Ali to a Linux VPS or standard Shared Hosting is seamless.
 
 #### 1. Setup Environment
 ```bash
-git clone https://github.com/RiprLutuk/Ali.git
-cd Ali
+git clone https://github.com/ghozali25/Attendance-V2.git
+cd Attendance-V2
 
 composer install --optimize-autoloader --no-dev
 bun install
@@ -139,15 +136,3 @@ Experience the platform in a restricted simulation sandbox.
 | :--- | :--- | :--- |
 | **Admin** | `admin123@Ali.com` | `12345678` |
 | **User** | `user123@Ali.com` | `12345678` |
-
----
-
-## 🤝 Credits & Maintainer
-
-Built upon the core Open Source foundation initiated by [Ikhsan3adi](https://github.com/ikhsan3adi). Re-architected and transformed into a scalable Enterprise system by **[RiprLutuk](https://github.com/RiprLutuk)**.
-
-  <b>Fuel the Innovation</b><br>
-  <img src="./screenshots/donation-qr.jpeg" width="160px" style="border-radius: 12px; margin-top: 15px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
-  <p style="margin-top: 15px; font-weight: bold; font-size: 1.1em; color: #00AEDA; letter-spacing: 1px;">💳 GOPAY SUPPORT</p>
-
-
