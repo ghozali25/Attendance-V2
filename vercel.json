@@ -9,7 +9,7 @@
             "src": "package.json",
             "use": "@vercel/static-build",
             "config": {
-                "distDir": "public/build"
+                "distDir": "public"
             }
         },
         {
@@ -20,7 +20,43 @@
     "routes": [
         {
             "src": "/build/(.*)",
-            "dest": "/public/build/$1"
+            "dest": "/build/$1"
+        },
+        {
+            "src": "/images/(.*)",
+            "dest": "/images/$1"
+        },
+        {
+            "src": "/assets/(.*)",
+            "dest": "/assets/$1"
+        },
+        {
+            "src": "/js/(.*)",
+            "dest": "/js/$1"
+        },
+        {
+            "src": "/models/(.*)",
+            "dest": "/models/$1"
+        },
+        {
+            "src": "/sw.js",
+            "dest": "/sw.js"
+        },
+        {
+            "src": "/service-worker.js",
+            "dest": "/service-worker.js"
+        },
+        {
+            "src": "/manifest.json",
+            "dest": "/manifest.json"
+        },
+        {
+            "src": "/robots.txt",
+            "dest": "/robots.txt"
+        },
+        {
+            "src": "/favicon.ico",
+            "dest": "/favicon.ico"
         },
         {
             "src": "/(.*)",
