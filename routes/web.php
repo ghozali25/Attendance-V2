@@ -28,6 +28,23 @@ Route::get('/test-error/{code}', function ($code) {
 Route::post('/migrate', [\App\Http\Controllers\MigrateController::class, 'run'])
     ->name('migrate.run');
 
+// Health check endpoint
+Route::get('/health', function () {
+    try {
+        \DB::connection()->getPdo();
+        return response()->json([
+            'status' => 'healthy',
+            'database' => 'connected',
+            'migrations_ran' => \Schema::hasTable('users'),
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'unhealthy',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+})->name('health');
+
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/attendance/photo/{attendance}/{type}/{index?}', [AttendancePhotoController::class, 'show'])
