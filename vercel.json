@@ -6,6 +6,13 @@
             "use": "vercel-php@0.7.4"
         },
         {
+            "src": "package.json",
+            "use": "@vercel/static-build",
+            "config": {
+                "distDir": "public/build"
+            }
+        },
+        {
             "src": "public/**",
             "use": "@vercel/static"
         }

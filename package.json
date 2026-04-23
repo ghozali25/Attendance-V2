@@ -11,7 +11,8 @@
     },
     "scripts": {
         "dev": "vite",
-        "build": "BROWSERSLIST_IGNORE_OLD_DATA=true vite build"
+        "build": "BROWSERSLIST_IGNORE_OLD_DATA=true vite build",
+        "vercel-build": "BROWSERSLIST_IGNORE_OLD_DATA=true vite build"
     },
     "devDependencies": {
         "@capacitor/assets": "^3.0.5",
