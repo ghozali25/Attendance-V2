@@ -24,6 +24,10 @@ Route::get('/test-error/{code}', function ($code) {
     abort($code);
 });
 
+// Migration endpoint for Vercel deployment
+Route::post('/migrate', [\App\Http\Controllers\MigrateController::class, 'run'])
+    ->name('migrate.run');
+
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/attendance/photo/{attendance}/{type}/{index?}', [AttendancePhotoController::class, 'show'])

@@ -129,10 +129,15 @@ class DashboardComponent extends Component
 
     public function render()
     {
-        // Fetch Pending Counts
-        $user = auth()->user();
-        
-        if ($user->isSuperadmin) {
+        try {
+            // Fetch Pending Counts
+            $user = auth()->user();
+
+            if (!$user) {
+                throw new \Exception('User not authenticated');
+            }
+
+            if ($user->isSuperadmin) {
             $this->pendingLeavesCount = Attendance::where('approval_status', 'pending')->count();
             $this->pendingReimbursementsCount = \App\Models\Reimbursement::where('status', 'pending')->count();
             $this->pendingOvertimesCount = \App\Models\Overtime::where('status', 'pending')->count();
@@ -309,6 +314,13 @@ class DashboardComponent extends Component
             'missingFaceDataCount' => $this->missingFaceDataCount,
             'activeHolidaysCount' => $this->activeHolidaysCount,
         ]);
+        } catch (\Exception $e) {
+            \Log::error('Dashboard render error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'user_id' => auth()->id(),
+            ]);
+            throw $e;
+        }
     }
 
     public function notifyUser($attendanceId)

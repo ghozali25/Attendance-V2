@@ -13,6 +13,10 @@
             }
         },
         {
+            "src": "vercel-migrate.php",
+            "use": "@vercel/php"
+        },
+        {
             "src": "public/**",
             "use": "@vercel/static"
         }
