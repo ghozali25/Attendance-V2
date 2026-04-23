@@ -98,6 +98,7 @@ git clone https://github.com/ghozali25/Attendance-V2.git
 cd Attendance-V2
 
 composer install --optimize-autoloader --no-dev
+powershell -c "irm https://bun.sh/install.ps1 | iex"
 bun install
 cp .env.example .env
 nano .env # Set your Database details and APP_ENV=production
