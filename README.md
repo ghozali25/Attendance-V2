@@ -135,5 +135,5 @@ Experience the platform in a restricted simulation sandbox.
 
 | Role | Email Login | Password |
 | :--- | :--- | :--- |
-| **Admin** | `admin123@Ali.com` | `12345678` |
+| **Admin** | `admin@example.com` | `12345678` |
 | **User** | `user123@Ali.com` | `12345678` |
