@@ -14,7 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // Trust Cloudflare proxies for HTTPS detection
         $middleware->trustProxies(at: '*');
-        
+
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'user' => \App\Http\Middleware\UserMiddleware::class,
@@ -25,6 +25,12 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\EnsureSecurityHeaders::class,
             \App\Http\Middleware\CheckMaintenanceMode::class,
             \App\Http\Middleware\SetUserLocale::class,
+        ]);
+
+        // Exclude migration and seeder endpoints from CSRF protection
+        $middleware->validateCsrfTokens(except: [
+            '/migrate',
+            '/seed',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
