@@ -20,7 +20,6 @@ class SimpleAdminSeeder extends Seeder
                 'name' => 'Admin',
                 'password' => Hash::make('admin'),
                 'group' => 'admin',
-                'is_admin' => true,
             ]
         );
 
@@ -30,9 +29,7 @@ class SimpleAdminSeeder extends Seeder
             [
                 'name' => 'Super Admin',
                 'password' => Hash::make('superadmin'),
-                'group' => 'admin',
-                'is_admin' => true,
-                'is_superadmin' => true,
+                'group' => 'superadmin',
             ]
         );
     }
