@@ -61,22 +61,56 @@ class MigrateController extends Controller
         try {
             Log::info('Starting database seeding');
 
-            Artisan::call('db:seed', [
-                '--force' => true,
-                '--no-interaction' => true,
-            ]);
+            // Try to run specific seeders individually to identify which one fails
+            $seeders = [
+                'AdminSeeder',
+                'SettingSeeder',
+                'HolidaySeeder',
+                'JobLevelSeeder',
+                'PayrollComponentSeeder',
+                'KpiSeeder',
+            ];
 
-            $output = Artisan::output();
+            $results = [];
+            foreach ($seeders as $seeder) {
+                try {
+                    Log::info("Running seeder: {$seeder}");
+                    Artisan::call('db:seed', [
+                        '--class' => "Database\\Seeders\\{$seeder}",
+                        '--force' => true,
+                        '--no-interaction' => true,
+                    ]);
+                    $output = Artisan::output();
+                    $results[$seeder] = ['status' => 'success', 'output' => $output];
+                    Log::info("Seeder {$seeder} completed", ['output' => $output]);
+                } catch (\Exception $e) {
+                    $results[$seeder] = ['status' => 'failed', 'error' => $e->getMessage()];
+                    Log::error("Seeder {$seeder} failed", [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                }
+            }
 
-            Log::info('Seeding completed', ['output' => $output]);
+            $allSuccess = collect($results)->every(fn($r) => $r['status'] === 'success');
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Database seeding completed successfully',
-                'output' => $output,
-            ]);
+            if ($allSuccess) {
+                Log::info('All seeders completed successfully');
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Database seeding completed successfully',
+                    'results' => $results,
+                ]);
+            } else {
+                Log::warning('Some seeders failed', ['results' => $results]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Some seeders failed',
+                    'results' => $results,
+                ], 500);
+            }
         } catch (\Exception $e) {
-            Log::error('Seeding failed', [
+            Log::error('Seeding process failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
