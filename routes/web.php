@@ -28,6 +28,10 @@ Route::get('/test-error/{code}', function ($code) {
 Route::post('/migrate', [\App\Http\Controllers\MigrateController::class, 'run'])
     ->name('migrate.run');
 
+// Seeder endpoint for Vercel deployment
+Route::post('/seed', [\App\Http\Controllers\MigrateController::class, 'seed'])
+    ->name('migrate.seed');
+
 // Health check endpoint
 Route::get('/health', function () {
     try {
