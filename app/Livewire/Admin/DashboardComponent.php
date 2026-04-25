@@ -164,6 +164,8 @@ class DashboardComponent extends Component
                 'chartData' => ['labels' => [], 'present' => [], 'late' => [], 'other' => []],
                 'overdueUsers' => collect(),
                 'calendarLeaves' => collect(),
+                'pendingLeavesCount' => 0,
+                'pendingReimbursementsCount' => 0,
                 'pendingOvertimesCount' => 0,
                 'pendingKasbonCount' => 0,
                 'missingFaceDataCount' => 0,
