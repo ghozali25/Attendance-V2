@@ -71,60 +71,80 @@ class DashboardComponent extends Component
 
     private function calculateChartData()
     {
-        $chartLabels = [];
-        $chartPresent = [];
-        $chartLate = [];
-        $chartAbsent = [];
+        try {
+            $chartLabels = [];
+            $chartPresent = [];
+            $chartLate = [];
+            $chartAbsent = [];
 
-        if ($this->chartFilter === 'month') {
-            // Last 30 Days
-            $startDate = now()->subDays(29);
-            $endDate = now();
-            $period = \Carbon\CarbonPeriod::create($startDate, $endDate);
-
-            // Optimize: Fetch strict range
-            $periodAttendances = Attendance::managedBy(auth()->user())
-                ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-                // Only approved leaves OR present/late statuses (which don't need approval usually, but if they do, add here)
-                // Assuming 'present'/'late' are auto-approved or don't need it. 'sick'/'excused' need approval.
-                ->get();
-
-            foreach ($period as $date) {
-                $chartLabels[] = $date->format('d M');
-                $dayAttendances = $periodAttendances->where('date', '>=', $date->startOfDay())->where('date', '<=', $date->endOfDay());
-                $chartPresent[] = $dayAttendances->where('status', 'present')->count();
-                $chartLate[] = $dayAttendances->where('status', 'late')->count();
-                $chartAbsent[] = $dayAttendances->whereIn('status', ['sick', 'excused'])
-                    ->where('approval_status', 'approved') // Only approved
-                    ->count();
-            }
-        } else {
-            // Default: Last 7 Days (Week)
-            for ($i = 6; $i >= 0; $i--) {
-                $date = now()->subDays($i);
-                $chartLabels[] = $date->format('d M');
-
-                $startDate = now()->subDays(6);
+            if ($this->chartFilter === 'month') {
+                // Last 30 Days
+                $startDate = now()->subDays(29);
                 $endDate = now();
-                $weeklyAttendances = Attendance::managedBy(auth()->user())
-                    ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])->get();
+                $period = \Carbon\CarbonPeriod::create($startDate, $endDate);
 
-                $dayAttendances = $weeklyAttendances->where('date', '>=', $date->startOfDay())->where('date', '<=', $date->endOfDay());
+                // Optimize: Fetch strict range
+                $periodAttendances = collect();
+                try {
+                    $periodAttendances = Attendance::managedBy(auth()->user())
+                        ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                        // Only approved leaves OR present/late statuses (which don't need approval usually, but if they do, add here)
+                        // Assuming 'present'/'late' are auto-approved or don't need it. 'sick'/'excused' need approval.
+                        ->get();
+                } catch (\Exception $e) {
+                    $periodAttendances = collect();
+                }
 
-                $chartPresent[] = $dayAttendances->where('status', 'present')->count();
-                $chartLate[] = $dayAttendances->where('status', 'late')->count();
-                $chartAbsent[] = $dayAttendances->whereIn('status', ['sick', 'excused'])
-                    ->where('approval_status', 'approved') // Only approved
-                    ->count();
+                foreach ($period as $date) {
+                    $chartLabels[] = $date->format('d M');
+                    $dayAttendances = $periodAttendances->where('date', '>=', $date->startOfDay())->where('date', '<=', $date->endOfDay());
+                    $chartPresent[] = $dayAttendances->where('status', 'present')->count();
+                    $chartLate[] = $dayAttendances->where('status', 'late')->count();
+                    $chartAbsent[] = $dayAttendances->whereIn('status', ['sick', 'excused'])
+                        ->where('approval_status', 'approved') // Only approved
+                        ->count();
+                }
+            } else {
+                // Default: Last 7 Days (Week)
+                for ($i = 6; $i >= 0; $i--) {
+                    $date = now()->subDays($i);
+                    $chartLabels[] = $date->format('d M');
+
+                    $startDate = now()->subDays(6);
+                    $endDate = now();
+                    $weeklyAttendances = collect();
+                    try {
+                        $weeklyAttendances = Attendance::managedBy(auth()->user())
+                            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])->get();
+                    } catch (\Exception $e) {
+                        $weeklyAttendances = collect();
+                    }
+
+                    $dayAttendances = $weeklyAttendances->where('date', '>=', $date->startOfDay())->where('date', '<=', $date->endOfDay());
+
+                    $chartPresent[] = $dayAttendances->where('status', 'present')->count();
+                    $chartLate[] = $dayAttendances->where('status', 'late')->count();
+                    $chartAbsent[] = $dayAttendances->whereIn('status', ['sick', 'excused'])
+                        ->where('approval_status', 'approved') // Only approved
+                        ->count();
+                }
             }
-        }
 
-        return [
-            'labels' => $chartLabels,
-            'present' => $chartPresent,
-            'late' => $chartLate,
-            'other' => $chartAbsent
-        ];
+            return [
+                'labels' => $chartLabels,
+                'present' => $chartPresent,
+                'late' => $chartLate,
+                'other' => $chartAbsent
+            ];
+        } catch (\Exception $e) {
+            \Log::error('calculateChartData error: ' . $e->getMessage());
+            return [
+                'labels' => [],
+                'present' => [],
+                'late' => [],
+                'other' => []
+            ];
+        }
     }
 
     public function render()
