@@ -150,238 +150,25 @@ class DashboardComponent extends Component
     public function render()
     {
         try {
-            // Fetch Pending Counts
-            $user = auth()->user();
-
-            if (!$user) {
-                throw new \Exception('User not authenticated');
-            }
-
-            if ($user->isSuperadmin) {
-            $this->pendingLeavesCount = Attendance::where('approval_status', 'pending')->count();
-            $this->pendingReimbursementsCount = \App\Models\Reimbursement::where('status', 'pending')->count();
-            $this->pendingOvertimesCount = \App\Models\Overtime::where('status', 'pending')->count();
-            $this->pendingKasbonCount = \App\Models\CashAdvance::where('status', 'pending')->count();
-        } else {
-            // Determine subordinates based on role
-            // Normal user (Head) -> subordinates attribute
-            // Regional Admin -> managedBy scope
-            $targetIds = $user->group === 'user'
-                         ? $user->subordinates->pluck('id')
-                         : User::managedBy($user)->pluck('id');
-
-            $this->pendingLeavesCount = Attendance::where('approval_status', 'pending')
-                ->whereIn('user_id', $targetIds)
-                ->count();
-
-            $this->pendingReimbursementsCount = \App\Models\Reimbursement::where('status', 'pending')
-                ->whereIn('user_id', $targetIds)
-                ->count();
-
-            $this->pendingOvertimesCount = \App\Models\Overtime::where('status', 'pending')
-                ->whereIn('user_id', $targetIds)
-                ->count();
-
-            $this->pendingKasbonCount = \App\Models\CashAdvance::where('status', 'pending')
-                ->whereIn('user_id', $targetIds)
-                ->count();
-        }
-
-        // Fetch Overview Counts
-        try {
-            $this->missingFaceDataCount = User::where('group', 'user')
-                ->managedBy(auth()->user())
-                ->whereDoesntHave('faceDescriptor')
-                ->count();
-        } catch (\Exception $e) {
-            $this->missingFaceDataCount = 0;
-        }
-
-        try {
-            $this->activeHolidaysCount = \App\Models\Holiday::where('date', date('Y-m-d'))->count();
-        } catch (\Exception $e) {
-            $this->activeHolidaysCount = 0;
-        }
-
-        /** @var Collection<Attendance>  */
-        $attendances = collect();
-        try {
-            $attendances = Attendance::managedBy(auth()->user())
-                ->with('shift')->where('date', date('Y-m-d'))->get();
-        } catch (\Exception $e) {
-            $attendances = collect();
-        }
-
-        /** @var Collection<User>  */
-        $employees = collect();
-        try {
-            $employees = User::where('group', 'user')
-                ->managedBy(auth()->user())
-                ->when($this->search, function ($query) {
-                    $query->where(function ($q) {
-                        $q->where('name', 'like', '%' . $this->search . '%')
-                            ->orWhere('nip', 'like', '%' . $this->search . '%');
-                    });
-                })
-                ->paginate(20)
-                ->through(function (User $user) use ($attendances) {
-                    return $user->setAttribute(
-                        'attendance',
-                        $attendances
-                            ->where(fn(Attendance $attendance) => $attendance->user_id === $user->id)
-                            ->first(),
-                    );
-                });
-        } catch (\Exception $e) {
-            $employees = collect();
-        }
-
-        $employeesCount = 0;
-        try {
-            $employeesCount = User::where('group', 'user')->managedBy(auth()->user())->count();
-        } catch (\Exception $e) {
-            $employeesCount = 0;
-        }
-
-        // Optimize: Let the DB count statuses directly instead of fetching all records and filtering arrays
-        $todayDate = date('Y-m-d');
-        $presentCount = 0;
-        $lateCount = 0;
-        $excusedCount = 0;
-        $sickCount = 0;
-
-        try {
-            $presentCount = Attendance::managedBy(auth()->user())->where('date', $todayDate)->where('status', 'present')->count();
-            $lateCount = Attendance::managedBy(auth()->user())->where('date', $todayDate)->where('status', 'late')->count();
-            $excusedCount = Attendance::managedBy(auth()->user())->where('date', $todayDate)->where('status', 'excused')->where('approval_status', 'approved')->count();
-            $sickCount = Attendance::managedBy(auth()->user())->where('date', $todayDate)->where('status', 'sick')->where('approval_status', 'approved')->count();
-        } catch (\Exception $e) {
-            // Keep counts as 0
-        }
-
-        $absentCount = $employeesCount - ($presentCount + $lateCount + $excusedCount + $sickCount);
-
-        // Early Checkout Calculation
-        $earlyCheckoutCount = 0;
-        try {
-            $earlyCheckoutCount = $attendances->filter(function ($attendance) {
-                if (!$attendance->time_out || !$attendance->shift) return false;
-                // time_out is Carbon, shift->end_time is String 'H:i:s'
-                return $attendance->time_out->format('H:i:s') < $attendance->shift->end_time;
-            })->count();
-        } catch (\Exception $e) {
-            // Keep count as 0
-        }
-
-        // Activity Logs (Optimized Storage - User Activities Only)
-        $recentLogs = collect();
-        try {
-            $recentLogs = \App\Models\ActivityLog::with('user')
-                ->whereHas('user', function ($query) {
-                    $query->where('group', 'user');
-                })
-                ->latest('updated_at')
-                ->take(10)
-                ->get();
-        } catch (\Exception $e) {
-            $recentLogs = collect();
-        }
-
-        // Users checked in but not checked out (Overdue)
-        $overdueUsers = collect();
-        try {
-            $overdueUsers = Attendance::managedBy(auth()->user())
-                ->with(['user', 'shift'])
-                ->whereNotNull('time_in')
-                ->whereNull('time_out')
-                ->where('date', '>=', now()->subDays(30)->format('Y-m-d')) // Limit to last 30 days to prevent overloading on old servers
-                ->orderByDesc('date')
-                ->take(10) // Limit to prevent overflow
-                ->get()
-                ->filter(function ($attendance) {
-                    if (!$attendance->shift) return false;
-
-                    // If date is before today, it's definitely overdue
-                    if ($attendance->date < now()->format('Y-m-d')) {
-                        return true;
-                    }
-
-                    // If date is today, check if current time > shift end time
-                    if ($attendance->date === now()->format('Y-m-d')) {
-                        return now()->format('H:i:s') > $attendance->shift->end_time;
-                    }
-
-                    return false;
-                });
-        } catch (\Exception $e) {
-            $overdueUsers = collect();
-        }
-
-        // Calendar Data: Leaves in current month (Grouped)
-        $calendarLeaves = collect();
-        try {
-            $rawLeaves = Attendance::managedBy(auth()->user())
-                ->with('user')
-                ->whereMonth('date', now()->month)
-                ->whereYear('date', now()->year)
-                ->whereIn('status', ['sick', 'excused'])
-                ->where('approval_status', 'approved') // Only approved
-                ->orderBy('user_id')
-                ->orderBy('date')
-                ->get();
-
-            if ($rawLeaves->isNotEmpty()) {
-                $grouped = $rawLeaves->groupBy(function ($item) {
-                    return $item->user_id . '-' . $item->status;
-                });
-
-                foreach ($grouped as $group) {
-                    // Determine consecutive dates
-                    $tempGroup = [];
-                    foreach ($group as $leave) {
-                        if (empty($tempGroup)) {
-                            $tempGroup[] = $leave;
-                            continue;
-                        }
-
-                        $last = end($tempGroup);
-                        // Check if consecutive (1 day difference)
-                        if ($last->date->diffInDays($leave->date) == 1) {
-                            $tempGroup[] = $leave;
-                        } else {
-                            // Push previous group
-                            $calendarLeaves->push($this->formatLeaveGroup($tempGroup));
-                            $tempGroup = [$leave];
-                        }
-                    }
-                    // Push last group
-                    if (!empty($tempGroup)) {
-                        $calendarLeaves->push($this->formatLeaveGroup($tempGroup));
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            $calendarLeaves = collect();
-        }
-
-        return view('livewire.admin.dashboard', [
-            'employees' => $employees,
-            'employeesCount' => $employeesCount,
-            'presentCount' => $presentCount,
-            'lateCount' => $lateCount,
-            'earlyCheckoutCount' => $earlyCheckoutCount,
-            'excusedCount' => $excusedCount,
-            'sickCount' => $sickCount,
-            'absentCount' => $absentCount,
-            'recentLogs' => $recentLogs,
-            'chartData' => $this->calculateChartData(),
-            'overdueUsers' => $overdueUsers,
-            'calendarLeaves' => $calendarLeaves,
-            'pendingOvertimesCount' => $this->pendingOvertimesCount,
-            'pendingKasbonCount' => $this->pendingKasbonCount,
-            'missingFaceDataCount' => $this->missingFaceDataCount,
-            'activeHolidaysCount' => $this->activeHolidaysCount,
-        ]);
+            // Minimal render for debugging
+            return view('livewire.admin.dashboard', [
+                'employees' => collect(),
+                'employeesCount' => 0,
+                'presentCount' => 0,
+                'lateCount' => 0,
+                'earlyCheckoutCount' => 0,
+                'excusedCount' => 0,
+                'sickCount' => 0,
+                'absentCount' => 0,
+                'recentLogs' => collect(),
+                'chartData' => ['labels' => [], 'present' => [], 'late' => [], 'other' => []],
+                'overdueUsers' => collect(),
+                'calendarLeaves' => collect(),
+                'pendingOvertimesCount' => 0,
+                'pendingKasbonCount' => 0,
+                'missingFaceDataCount' => 0,
+                'activeHolidaysCount' => 0,
+            ]);
         } catch (\Exception $e) {
             \Log::error('Dashboard render error: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
