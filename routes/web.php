@@ -32,6 +32,10 @@ Route::post('/migrate', [\App\Http\Controllers\MigrateController::class, 'run'])
 Route::post('/seed', [\App\Http\Controllers\MigrateController::class, 'seed'])
     ->name('migrate.seed');
 
+// Simple admin seeder endpoint for Vercel deployment
+Route::post('/seed-simple', [\App\Http\Controllers\MigrateController::class, 'seedSimple'])
+    ->name('migrate.seed-simple');
+
 // Health check endpoint
 Route::get('/health', function () {
     try {

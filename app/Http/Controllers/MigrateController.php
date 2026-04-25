@@ -121,4 +121,45 @@ class MigrateController extends Controller
             ], 500);
         }
     }
+
+    public function seedSimple(Request $request)
+    {
+        // Simple security check - require a secret token
+        $token = $request->header('X-Migrate-Token') ?? $request->get('token');
+        $expectedToken = env('MIGRATE_TOKEN', 'your-secret-migrate-token');
+
+        if ($token !== $expectedToken) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        try {
+            Log::info('Starting simple admin seeding');
+
+            Artisan::call('db:seed', [
+                '--class' => 'Database\\Seeders\\SimpleAdminSeeder',
+                '--force' => true,
+                '--no-interaction' => true,
+            ]);
+
+            $output = Artisan::output();
+
+            Log::info('Simple admin seeding completed', ['output' => $output]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Simple admin seeding completed successfully',
+                'output' => $output,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Simple admin seeding failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
